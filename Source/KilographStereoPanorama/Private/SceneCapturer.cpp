@@ -2,15 +2,6 @@
 
 #include "StereoPanoramaPrivatePCH.h"
 
-//return FLinearColor(R / 255.f, G / 255.f, B / 255.f, A / 255.f);
-
-#define F16TOLINEAR( F16 ) FLinearColor(F16.R / 255.f, F16.G / 255.f, F16.B / 255.f, F16.A / 255.f)
-
-//#define F16TOLINEAR( F16 ) FLinearColor(F16)
-
-
-#define CLAMP_FLOAT_COLOR( colorInput ) FMath::Clamp<FFloat16>(colorInput * 255.f, 0.f, 255.f)
-
 DEFINE_LOG_CATEGORY( LogStereoPanorama );
 
 // Whether or not to render the left/right eyes together
@@ -78,8 +69,8 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
 	//CaptureComponent->PostProcessSettings.AutoExposureSpeedUp = 20.0f;
 	//CaptureComponent->PostProcessSettings.AutoExposureSpeedDown = 20.0f;
 
-	//CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
-	//CaptureComponent->PostProcessSettings.AutoExposureBias = 0.0f;
+	CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
+	CaptureComponent->PostProcessSettings.AutoExposureBias = -2.0f;
 
 	//CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
 	//CaptureComponent->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
@@ -119,15 +110,14 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
     CaptureComponent->CaptureStereoPass = InStereoPass;
     CaptureComponent->FOVAngle = FMath::Max( HFov, VFov );
     CaptureComponent->bCaptureEveryFrame = false;
-    //CaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
-	CaptureComponent->CaptureSource = ESceneCaptureSource::SCS_SceneColorHDR;
+    CaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 
 	const FName TargetName = MakeUniqueObjectName(this, UTextureRenderTarget2D::StaticClass(), TEXT("SceneCaptureTextureTarget"));
     CaptureComponent->TextureTarget = NewObject<UTextureRenderTarget2D>(this, TargetName);
     //TODO: ikrimae: Not sure why the render target needs to be float to avoid banding. Seems like captures to this RT and then applies PP
-    //               on top of it which causes degradation.
+    //               on top of it which causes degredation.
     //CaptureComponent->TextureTarget->InitCustomFormat(CaptureWidth, CaptureHeight, PF_A16B16G16R16, false);
-	CaptureComponent->TextureTarget->InitCustomFormat(CaptureWidth, CaptureHeight, PF_FloatRGBA, false);
+	CaptureComponent->TextureTarget->InitCustomFormat(CaptureWidth, CaptureHeight, PF_B8G8R8A8, false);
 	CaptureComponent->TextureTarget->ClearColor = FLinearColor::Red;
 
 
@@ -454,12 +444,12 @@ void USceneCapturer::SetInitialState( int32 InStartFrame, int32 InEndFrame, FSte
     StereoCaptureDoneDelegate = InStereoCaptureDoneDelegate;
 }
 
-void USceneCapturer::CopyToUnprojAtlas( int32 CurrentHorizontalStep, int32 CurrentVerticalStep, TArray<FFloat16Color>& Atlas, TArray<FFloat16Color>& SurfaceData )
+void USceneCapturer::CopyToUnprojAtlas( int32 CurrentHorizontalStep, int32 CurrentVerticalStep, TArray<FColor>& Atlas, TArray<FColor>& SurfaceData )
 {
 	int32 XOffset = StripWidth * CurrentHorizontalStep;
     int32 YOffset = StripHeight * CurrentVerticalStep;
 
-	int32 StripSize = StripWidth * sizeof(FFloat16Color);
+	int32 StripSize = StripWidth * sizeof( FColor );
     for (int32 Y = 0; Y < StripHeight; Y++)
 	{
         void* Destination = &Atlas[( ( Y + YOffset ) * UnprojectedAtlasWidth ) + XOffset];
@@ -468,11 +458,11 @@ void USceneCapturer::CopyToUnprojAtlas( int32 CurrentHorizontalStep, int32 Curre
 	}
 }
 
-TArray<FFloat16Color> USceneCapturer::SaveAtlas(FString Folder, const TArray<FFloat16Color>& SurfaceData)
+TArray<FColor> USceneCapturer::SaveAtlas(FString Folder, const TArray<FColor>& SurfaceData)
 {
 	SCOPE_CYCLE_COUNTER( STAT_SPSavePNG );
 	
-    TArray<FFloat16Color> SphericalAtlas;
+    TArray<FColor> SphericalAtlas;
     SphericalAtlas.AddZeroed(SphericalAtlasWidth * SphericalAtlasHeight);
 
     const FVector2D slicePlaneDim = FVector2D(
@@ -605,20 +595,18 @@ TArray<FFloat16Color> USceneCapturer::SaveAtlas(FString Folder, const TArray<FFl
                         const FIntPoint atlasSampleBL(sliceCenterPixelX + FMath::Clamp(slicePixelX    , -StripWidth/2, StripWidth/2), sliceCenterPixelY + FMath::Clamp(slicePixelY + 1, -StripHeight/2, StripHeight/2));
                         const FIntPoint atlasSampleBR(sliceCenterPixelX + FMath::Clamp(slicePixelX + 1, -StripWidth/2, StripWidth/2), sliceCenterPixelY + FMath::Clamp(slicePixelY + 1, -StripHeight/2, StripHeight/2));
 
-                        const FFloat16Color pixelColorTL = SurfaceData[atlasSampleTL.Y * UnprojectedAtlasWidth + atlasSampleTL.X];
-                        const FFloat16Color pixelColorTR = SurfaceData[atlasSampleTR.Y * UnprojectedAtlasWidth + atlasSampleTR.X];
-                        const FFloat16Color pixelColorBL = SurfaceData[atlasSampleBL.Y * UnprojectedAtlasWidth + atlasSampleBL.X];
-                        const FFloat16Color pixelColorBR = SurfaceData[atlasSampleBR.Y * UnprojectedAtlasWidth + atlasSampleBR.X];
+                        const FColor pixelColorTL = SurfaceData[atlasSampleTL.Y * UnprojectedAtlasWidth + atlasSampleTL.X];
+                        const FColor pixelColorTR = SurfaceData[atlasSampleTR.Y * UnprojectedAtlasWidth + atlasSampleTR.X];
+                        const FColor pixelColorBL = SurfaceData[atlasSampleBL.Y * UnprojectedAtlasWidth + atlasSampleBL.X];
+                        const FColor pixelColorBR = SurfaceData[atlasSampleBR.Y * UnprojectedAtlasWidth + atlasSampleBR.X];
 
                         const float fracX = FMath::Frac(dbgMatchCaptureSliceFovToAtlasSliceFov ? sliceU * StripWidth : sliceU * CaptureWidth);
                         const float fracY = FMath::Frac(dbgMatchCaptureSliceFovToAtlasSliceFov ? sliceV * StripHeight : sliceV * CaptureHeight);
 
-						//FLinearColor(R / 255.f, G / 255.f, B / 255.f, A / 255.f);
-
                         //Reinterpret as linear (a.k.a dont apply srgb inversion)
                         slicePixelSample = FMath::BiLerp(
-							F16TOLINEAR(pixelColorTL), F16TOLINEAR(pixelColorTR),
-							F16TOLINEAR(pixelColorBL), F16TOLINEAR(pixelColorBR),
+                            pixelColorTL.ReinterpretAsLinear(), pixelColorTR.ReinterpretAsLinear(),
+                            pixelColorBL.ReinterpretAsLinear(), pixelColorBR.ReinterpretAsLinear(),
                             fracX, fracY);
                     }
                     else
@@ -630,7 +618,7 @@ TArray<FFloat16Color> USceneCapturer::SaveAtlas(FString Folder, const TArray<FFl
                         const int32 atlasSampleY = sliceCenterPixelY + slicePixelY;
 
 
-                        slicePixelSample = F16TOLINEAR(SurfaceData[atlasSampleY * UnprojectedAtlasWidth + atlasSampleX]);
+                        slicePixelSample = SurfaceData[atlasSampleY * UnprojectedAtlasWidth + atlasSampleX].ReinterpretAsLinear();
                     }
 
                     samplePixelAccum += slicePixelSample;
@@ -654,26 +642,7 @@ TArray<FFloat16Color> USceneCapturer::SaveAtlas(FString Folder, const TArray<FFl
                     //samplePixelAccum = ssPattern.numSamples * debugEquiColors[sliceYIndex * 4 + sliceXIndex];
                 }
 
-				//return FColor(
-				//	(uint8)FMath::Clamp<int32>(FMath::TruncToInt(R*255.f), 0, 255),
-				//	(uint8)FMath::Clamp<int32>(FMath::TruncToInt(G*255.f), 0, 255),
-				//	(uint8)FMath::Clamp<int32>(FMath::TruncToInt(B*255.f), 0, 255),
-				//	(uint8)FMath::Clamp<int32>(FMath::TruncToInt(A*255.f), 0, 255)
-				//	);
-
-                SphericalAtlas[y * SphericalAtlasWidth + x] = FFloat16Color((samplePixelAccum / ssPattern.numSamples));
-
-				samplePixelAccum /= ssPattern.numSamples;
-
-				//#define CLAMP_FLOAT_COLOR( colorInput ) FMath::Clamp<FFloat16>(colorInput * 255.f, 0.f, 255.f)
-
-				FFloat16Color newColor;
-				newColor.R = CLAMP_FLOAT_COLOR(samplePixelAccum.R);
-				newColor.G = CLAMP_FLOAT_COLOR(samplePixelAccum.G);
-				newColor.B = CLAMP_FLOAT_COLOR(samplePixelAccum.B);
-				newColor.A = CLAMP_FLOAT_COLOR(samplePixelAccum.A);
-
-				SphericalAtlas[y * SphericalAtlasWidth + x] = newColor;
+                SphericalAtlas[y * SphericalAtlasWidth + x] = (samplePixelAccum / ssPattern.numSamples).Quantize();
 
                 // Force alpha value
                 if (bForceAlpha)
@@ -694,21 +663,18 @@ TArray<FFloat16Color> USceneCapturer::SaveAtlas(FString Folder, const TArray<FFl
     }
 	
 	// Generate name
-	//FString FrameString = FString::Printf( TEXT( "%s_%05d.png" ), *Folder, CurrentFrameCount );
-	FString FrameString = FString::Printf(TEXT("%s_%05d.exr"), *Folder, CurrentFrameCount);
+	FString FrameString = FString::Printf( TEXT( "%s_%05d.png" ), *Folder, CurrentFrameCount );
     FString AtlasName =  OutputDir / Timestamp / FrameString;
     
 	UE_LOG( LogStereoPanorama, Log, TEXT( "Writing atlas: %s" ), *AtlasName );
 
 	// Write out PNG
     //TODO: ikrimae: Use threads to write out the images for performance
-	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::EXR);
+	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 
 	if (!CombineAtlasesOnOutput)
 	{
-		//CaptureComponent->TextureTarget->InitCustomFormat(CaptureWidth, CaptureHeight, PF_FloatRGB, false);
-
-		ImageWrapper->SetRaw(SphericalAtlas.GetData(), SphericalAtlas.GetAllocatedSize(), SphericalAtlasWidth, SphericalAtlasHeight, ERGBFormat::RGBA, 32);
+		ImageWrapper->SetRaw(SphericalAtlas.GetData(), SphericalAtlas.GetAllocatedSize(), SphericalAtlasWidth, SphericalAtlasHeight, ERGBFormat::BGRA, 8);
 		const TArray<uint8>& PNGData = ImageWrapper->GetCompressed(100);
 		FFileHelper::SaveArrayToFile(PNGData, *AtlasName);
 	}
@@ -730,9 +696,9 @@ TArray<FFloat16Color> USceneCapturer::SaveAtlas(FString Folder, const TArray<FFl
     return SphericalAtlas;
 }
 
-void USceneCapturer::CaptureComponent( int32 CurrentHorizontalStep, int32 CurrentVerticalStep, FString Folder, USceneCaptureComponent2D* CaptureComponent, TArray<FFloat16Color>& Atlas )
+void USceneCapturer::CaptureComponent( int32 CurrentHorizontalStep, int32 CurrentVerticalStep, FString Folder, USceneCaptureComponent2D* CaptureComponent, TArray<FColor>& Atlas )
 {
-	TArray<FFloat16Color> SurfaceData;
+	TArray<FColor> SurfaceData;
 
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SPReadStrip );
@@ -748,82 +714,66 @@ void USceneCapturer::CaptureComponent( int32 CurrentHorizontalStep, int32 Curren
 		FIntRect Area( CenterX - ( StripWidth / 2 ), CenterY - ( StripHeight / 2 ), CenterX + ( StripWidth / 2 ), CenterY + ( StripHeight / 2) );
         auto readSurfaceDataFlags = FReadSurfaceDataFlags();
         readSurfaceDataFlags.SetLinearToGamma(false);
-
-
-		//RenderTarget->ReadPixelsPtr( SurfaceData.GetData(), readSurfaceDataFlags, Area );
-
-		//ENGINE_API bool ReadLinearColorPixelsPtr(FLinearColor* OutImageBytes, FReadSurfaceDataFlags InFlags = FReadSurfaceDataFlags(RCM_MinMax, CubeFace_MAX), FIntRect InRect = FIntRect(0, 0, 0, 0));
-
-		TArray<FLinearColor> linearColorSurfaceData;
-		linearColorSurfaceData.AddUninitialized(StripWidth * StripHeight);
-
-
-		//RenderTarget->ReadFloat16Pixels(SurfaceData);
-		RenderTarget->ReadLinearColorPixelsPtr(linearColorSurfaceData.GetData(), readSurfaceDataFlags, Area);
-
-		for (int surfaceDataIndex = 0; surfaceDataIndex < SurfaceData.Num(); surfaceDataIndex++)
-		{
-			SurfaceData[surfaceDataIndex] = FFloat16Color(linearColorSurfaceData[surfaceDataIndex]);
-		}
+		RenderTarget->ReadPixelsPtr( SurfaceData.GetData(), readSurfaceDataFlags, Area );
 	}
 
 	// Copy off strip to atlas texture
 	CopyToUnprojAtlas( CurrentHorizontalStep, CurrentVerticalStep, Atlas, SurfaceData );
 
-	//if( FKilographStereoPanoramaManager::GenerateDebugImages->GetInt() != 0 )
-	//{
-	//	SCOPE_CYCLE_COUNTER( STAT_SPSavePNG );
+	if( FKilographStereoPanoramaManager::GenerateDebugImages->GetInt() != 0 )
+	{
+		SCOPE_CYCLE_COUNTER( STAT_SPSavePNG );
 
-	//	// Generate name
-	//	FString TickString = FString::Printf( TEXT( "_%05d_%04d_%04d" ), CurrentFrameCount, CurrentHorizontalStep, CurrentVerticalStep );
-	//	FString CaptureName = OutputDir / Timestamp / Folder / TickString + TEXT( ".png" );
-	//	UE_LOG( LogStereoPanorama, Log, TEXT( "Writing snapshot: %s" ), *CaptureName );
+		// Generate name
+		FString TickString = FString::Printf( TEXT( "_%05d_%04d_%04d" ), CurrentFrameCount, CurrentHorizontalStep, CurrentVerticalStep );
+		FString CaptureName = OutputDir / Timestamp / Folder / TickString + TEXT( ".png" );
+		UE_LOG( LogStereoPanorama, Log, TEXT( "Writing snapshot: %s" ), *CaptureName );
 
-	//	// Write out PNG
- //       if (FKilographStereoPanoramaManager::GenerateDebugImages->GetInt() == 2)
- //       {
- //           //Read Whole Capture Buffer
-	//	    IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
+		// Write out PNG
+        if (FKilographStereoPanoramaManager::GenerateDebugImages->GetInt() == 2)
+        {
+            //Read Whole Capture Buffer
+		    IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 
- //           TArray<FColor> SurfaceDataWhole;
- //           SurfaceDataWhole.AddUninitialized(CaptureWidth * CaptureHeight);
- //           // Read pixels
- //           FTextureRenderTargetResource* RenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
- //           RenderTarget->ReadPixelsPtr(SurfaceDataWhole.GetData(), FReadSurfaceDataFlags());
+            TArray<FColor> SurfaceDataWhole;
+            SurfaceDataWhole.AddUninitialized(CaptureWidth * CaptureHeight);
+            // Read pixels
+            FTextureRenderTargetResource* RenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
+            RenderTarget->ReadPixelsPtr(SurfaceDataWhole.GetData(), FReadSurfaceDataFlags());
 
- //           // Force alpha value
- //           if (bForceAlpha)
- //           {
- //               for (FColor& Color : SurfaceDataWhole)
- //               {
- //                   Color.A = 255;
- //               }
- //           }
+            // Force alpha value
+            if (bForceAlpha)
+            {
+                for (FColor& Color : SurfaceDataWhole)
+                {
+                    Color.A = 255;
+                }
+            }
 
- //           ImageWrapper->SetRaw(SurfaceDataWhole.GetData(), SurfaceDataWhole.GetAllocatedSize(), CaptureWidth, CaptureHeight, ERGBFormat::BGRA, 8);
- //           const TArray<uint8>& PNGData = ImageWrapper->GetCompressed(100);
+            ImageWrapper->SetRaw(SurfaceDataWhole.GetData(), SurfaceDataWhole.GetAllocatedSize(), CaptureWidth, CaptureHeight, ERGBFormat::BGRA, 8);
+            const TArray<uint8>& PNGData = ImageWrapper->GetCompressed(100);
 
- //           FFileHelper::SaveArrayToFile(PNGData, *CaptureName);
- //           ImageWrapper.Reset();
- //       }
- //       else
- //       {
- //           if (bForceAlpha)
- //           {
- //               for (FColor& Color : SurfaceData)
- //               {
- //                   Color.A = 255;
- //               }
- //           }
+            FFileHelper::SaveArrayToFile(PNGData, *CaptureName);
+            ImageWrapper.Reset();
+        }
+        else
+        {
+            if (bForceAlpha)
+            {
+                for (FColor& Color : SurfaceData)
+                {
+                    Color.A = 255;
+                }
+            }
 
- //           IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
- //           ImageWrapper->SetRaw(SurfaceData.GetData(), SurfaceData.GetAllocatedSize(), StripWidth, StripHeight, ERGBFormat::BGRA, 8);
-	//	    const TArray<uint8>& PNGData = ImageWrapper->GetCompressed(100);
+            IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
+            ImageWrapper->SetRaw(SurfaceData.GetData(), SurfaceData.GetAllocatedSize(), StripWidth, StripHeight, ERGBFormat::BGRA, 8);
+		    const TArray<uint8>& PNGData = ImageWrapper->GetCompressed(100);
 
-	//	    FFileHelper::SaveArrayToFile( PNGData, *CaptureName );
-	//	    ImageWrapper.Reset();
-	//    }
- //   }
+		    FFileHelper::SaveArrayToFile( PNGData, *CaptureName );
+		    ImageWrapper.Reset();
+	    }
+    }
 }
 
 //TODO: ikrimae: Come back and actually work out the timings. Trickery b/c SceneCaptureCubes Tick at the end of the frame so we're effectively queuing up the next
@@ -923,8 +873,8 @@ void USceneCapturer::Tick( float DeltaTime )
 	}
 	else
 	{
-		TArray<FFloat16Color> SphericalLeftEyeAtlas  = SaveAtlas( TEXT( "Left" ), UnprojectedLeftEyeAtlas );
-        TArray<FFloat16Color> SphericalRightEyeAtlas = SaveAtlas(TEXT("Right"), UnprojectedRightEyeAtlas);
+		TArray<FColor> SphericalLeftEyeAtlas  = SaveAtlas( TEXT( "Left" ), UnprojectedLeftEyeAtlas );
+        TArray<FColor> SphericalRightEyeAtlas = SaveAtlas(TEXT("Right"), UnprojectedRightEyeAtlas);
 
 		UE_LOG(LogTemp, Warning, TEXT("Show me what you got"));
 
@@ -940,20 +890,18 @@ void USceneCapturer::Tick( float DeltaTime )
 			//}
 
 
-			TArray<FFloat16Color> CombinedAtlas;
+			TArray<FColor> CombinedAtlas;
 			CombinedAtlas.Append(SphericalLeftEyeAtlas);
 			CombinedAtlas.Append(SphericalRightEyeAtlas);
 
-			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::EXR);
+			IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
-			const size_t BitsPerPixel = (sizeof(FFloat16Color) / 4) * 8;
-
-			ImageWrapper->SetRaw(CombinedAtlas.GetData(), CombinedAtlas.GetAllocatedSize(), SphericalAtlasWidth, SphericalAtlasHeight * 2, ERGBFormat::RGBA, BitsPerPixel);
+			ImageWrapper->SetRaw(CombinedAtlas.GetData(), CombinedAtlas.GetAllocatedSize(), SphericalAtlasWidth, SphericalAtlasHeight * 2, ERGBFormat::BGRA, 8);
 
 			const TArray<uint8> & PNGData = ImageWrapper->GetCompressed(100);
 
 			// Generate name
-			FString FrameString = FString::Printf(TEXT("Frame_%05d.exr"), CurrentFrameCount);
+			FString FrameString = FString::Printf(TEXT("Frame_%05d.png"), CurrentFrameCount);
 			FString AtlasName = OutputDir / Timestamp / FrameString;
 			FFileHelper::SaveArrayToFile(PNGData, *AtlasName);
 

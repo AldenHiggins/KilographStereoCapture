@@ -65,5 +65,5 @@ public:
 
     FStereoCaptureDoneAction* StereoCaptureDoneAction;
 
-    void CopyAtlasDataToTextures(const TArray<FFloat16Color>& LeftEyeAtlasData, const TArray<FFloat16Color>& RightEyeAtlasData);
+    void CopyAtlasDataToTextures(const TArray<FColor>& LeftEyeAtlasData, const TArray<FColor>& RightEyeAtlasData);
 };

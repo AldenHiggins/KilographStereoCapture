@@ -53,7 +53,7 @@ void AStereoCapturePawn::UpdateStereoAtlas(UObject* WorldContextObject, struct F
 }
 
 
-void AStereoCapturePawn::CopyAtlasDataToTextures(const TArray<FFloat16Color>& InLeftEyeAtlasData, const TArray<FFloat16Color>& InRightEyeAtlasData)
+void AStereoCapturePawn::CopyAtlasDataToTextures(const TArray<FColor>& InLeftEyeAtlasData, const TArray<FColor>& InRightEyeAtlasData)
 {
     if (LeftEyeAtlas &&
         LeftEyeAtlas->IsValidLowLevel() &&
@@ -62,7 +62,7 @@ void AStereoCapturePawn::CopyAtlasDataToTextures(const TArray<FFloat16Color>& In
     {
         {
             const int32 TextureDataSize = InLeftEyeAtlasData.Num() * InLeftEyeAtlasData.GetTypeSize();
-            check(TextureDataSize == LeftEyeAtlas->GetSizeX() * LeftEyeAtlas->GetSizeY() * sizeof(FFloat16Color) );
+            check(TextureDataSize == LeftEyeAtlas->GetSizeX() * LeftEyeAtlas->GetSizeY() * sizeof(FColor) );
 
             FTexture2DMipMap& Mip = LeftEyeAtlas->PlatformData->Mips[0];
             void* Data = Mip.BulkData.Lock(LOCK_READ_WRITE);
@@ -73,7 +73,7 @@ void AStereoCapturePawn::CopyAtlasDataToTextures(const TArray<FFloat16Color>& In
 
         {
             const int32 TextureDataSize = InRightEyeAtlasData.Num() * InRightEyeAtlasData.GetTypeSize();
-            check(TextureDataSize == RightEyeAtlas->GetSizeX() * RightEyeAtlas->GetSizeY() * sizeof(FFloat16Color) );
+            check(TextureDataSize == RightEyeAtlas->GetSizeX() * RightEyeAtlas->GetSizeY() * sizeof(FColor) );
 
             FTexture2DMipMap& Mip = RightEyeAtlas->PlatformData->Mips[0];
             void* Data = Mip.BulkData.Lock(LOCK_READ_WRITE);

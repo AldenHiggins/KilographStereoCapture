@@ -27,7 +27,7 @@ enum class ECaptureStep
 };
 
 
-DECLARE_DELEGATE_TwoParams(FStereoCaptureDoneDelegate, const TArray<FFloat16Color>&, const TArray<FFloat16Color>&);
+DECLARE_DELEGATE_TwoParams(FStereoCaptureDoneDelegate, const TArray<FColor>&, const TArray<FColor>&);
 
 
 UCLASS()
@@ -70,11 +70,11 @@ public:
 
 	void InitCaptureComponent( USceneCaptureComponent2D* CaptureComponent, float HFov, float VFov, EStereoscopicPass InStereoPass );
 
-	void CaptureComponent( int32 CurrentHorizontalStep, int32 CurrentVerticalStep, FString Folder, USceneCaptureComponent2D* CaptureComponent, TArray<FFloat16Color>& Atlas );
+	void CaptureComponent( int32 CurrentHorizontalStep, int32 CurrentVerticalStep, FString Folder, USceneCaptureComponent2D* CaptureComponent, TArray<FColor>& Atlas );
 
-	void CopyToUnprojAtlas( int32 CurrentHorizontalStep, int32 CurrentVerticalStep, TArray<FFloat16Color>& Atlas, TArray<FFloat16Color>& SurfaceData );
+	void CopyToUnprojAtlas( int32 CurrentHorizontalStep, int32 CurrentVerticalStep, TArray<FColor>& Atlas, TArray<FColor>& SurfaceData );
 
-	TArray<FFloat16Color> SaveAtlas( FString Folder, const TArray<FFloat16Color>& SurfaceData );
+	TArray<FColor> SaveAtlas( FString Folder, const TArray<FColor>& SurfaceData );
 
 	void SetPositionAndRotation( int32 CurrentHorizontalStep, int32 CurrentVerticalStep, int32 CaptureIndex );
 
@@ -146,8 +146,8 @@ private:
     int32 CurrentStep;
 	int32 TotalSteps;
 
-    TArray<FFloat16Color> UnprojectedLeftEyeAtlas;
-    TArray<FFloat16Color> UnprojectedRightEyeAtlas;
+    TArray<FColor> UnprojectedLeftEyeAtlas;
+    TArray<FColor> UnprojectedRightEyeAtlas;
 
     const bool bForceAlpha;
 
