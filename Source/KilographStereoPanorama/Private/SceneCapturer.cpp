@@ -63,18 +63,18 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
 
 	// TEMP custom post processing settings
 	//CaptureComponent->PostProcessSettings
-	//CaptureComponent->PostProcessSettings.AutoExposureMethod = AEM_Basic;
-	//CaptureComponent->PostProcessSettings.AutoExposureMinBrightness = 0.01f;
-	//CaptureComponent->PostProcessSettings.AutoExposureMaxBrightness = 3.0f;
+	CaptureComponent->PostProcessSettings.AutoExposureMethod = AEM_Histogram;
+	CaptureComponent->PostProcessSettings.AutoExposureMinBrightness = 1.0f;
+	CaptureComponent->PostProcessSettings.AutoExposureMaxBrightness = 1.0f;
 	//CaptureComponent->PostProcessSettings.AutoExposureSpeedUp = 20.0f;
 	//CaptureComponent->PostProcessSettings.AutoExposureSpeedDown = 20.0f;
 
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
-	CaptureComponent->PostProcessSettings.AutoExposureBias = -2.0f;
+	CaptureComponent->PostProcessSettings.AutoExposureBias = 0.5f;
 
-	//CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
-	//CaptureComponent->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
-	//CaptureComponent->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
+	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
+	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
+	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
 	//CaptureComponent->PostProcessSettings.bOverride_AutoExposureSpeedUp = true;
 	//CaptureComponent->PostProcessSettings.bOverride_AutoExposureSpeedDown = true;
 
@@ -104,12 +104,25 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
 
 	CaptureComponent->PostProcessSettings.VignetteIntensity = 0.0f;
 
+	//UMaterial *DepthMaterial = LoadObject<UMaterial>(NULL, TEXT("/Game/Depth.Depth"));
+
+	//CaptureComponent->PostProcessSettings.AddBlendable(DepthMaterial, 1.0f);
+
+	//CaptureComponent->ShowFlags
+
 	//*NEW*
 
+	//CaptureComponent->GetViewState()->Allo
 
-    CaptureComponent->CaptureStereoPass = InStereoPass;
+	//	FSceneViewStateInterface* ViewStateInterface = ViewState.GetReference();
+	//if (bCaptureEveryFrame && ViewStateInterface == NULL)
+	//{
+	//	ViewState.Allocate();
+	//	ViewStateInterface = ViewState.GetReference();
+
+    //CaptureComponent->CaptureStereoPass = InStereoPass;
     CaptureComponent->FOVAngle = FMath::Max( HFov, VFov );
-    CaptureComponent->bCaptureEveryFrame = false;
+    CaptureComponent->bCaptureEveryFrame = true;
     CaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
 
 	const FName TargetName = MakeUniqueObjectName(this, UTextureRenderTarget2D::StaticClass(), TEXT("SceneCaptureTextureTarget"));
@@ -117,7 +130,7 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
     //TODO: ikrimae: Not sure why the render target needs to be float to avoid banding. Seems like captures to this RT and then applies PP
     //               on top of it which causes degredation.
     //CaptureComponent->TextureTarget->InitCustomFormat(CaptureWidth, CaptureHeight, PF_A16B16G16R16, false);
-	CaptureComponent->TextureTarget->InitCustomFormat(CaptureWidth, CaptureHeight, PF_B8G8R8A8, false);
+	CaptureComponent->TextureTarget->InitCustomFormat(CaptureWidth, CaptureHeight, PF_A16B16G16R16, false);
 	CaptureComponent->TextureTarget->ClearColor = FLinearColor::Red;
 
 
@@ -701,6 +714,9 @@ void USceneCapturer::CaptureComponent( int32 CurrentHorizontalStep, int32 Curren
 	TArray<FColor> SurfaceData;
 
 	{
+		//bScreenshotSuccessful = GetViewportScreenShot(InViewport, Bitmap);
+
+
 		SCOPE_CYCLE_COUNTER( STAT_SPReadStrip );
 		FTextureRenderTargetResource* RenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
 
@@ -880,16 +896,6 @@ void USceneCapturer::Tick( float DeltaTime )
 
 		if (CombineAtlasesOnOutput)
 		{
-			//IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-
-			//if (!CombineAtlasesOnOutput)
-			//{
-			//	ImageWrapper->SetRaw(SphericalAtlas.GetData(), SphericalAtlas.GetAllocatedSize(), SphericalAtlasWidth, SphericalAtlasHeight, ERGBFormat::BGRA, 8);
-			//	const TArray<uint8>& PNGData = ImageWrapper->GetCompressed(100);
-			//	FFileHelper::SaveArrayToFile(PNGData, *AtlasName);
-			//}
-
-
 			TArray<FColor> CombinedAtlas;
 			CombinedAtlas.Append(SphericalLeftEyeAtlas);
 			CombinedAtlas.Append(SphericalRightEyeAtlas);
@@ -906,25 +912,6 @@ void USceneCapturer::Tick( float DeltaTime )
 			FFileHelper::SaveArrayToFile(PNGData, *AtlasName);
 
 			ImageWrapper.Reset();
-
-			// ALDEN ADDED OLD STUFF
-
-			//TArray<FColor> CombinedAtlas;
-			//CombinedAtlas.Append(SphericalLeftEyeAtlas);
-			//CombinedAtlas.Append(SphericalRightEyeAtlas);
-
-			//IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::JPEG);
-
-			//ImageWrapper->SetRaw(CombinedAtlas.GetData(), CombinedAtlas.GetAllocatedSize(), SphericalAtlasWidth, SphericalAtlasHeight * 2, ERGBFormat::BGRA, 8);
-
-			//const TArray<uint8> & PNGData = ImageWrapper->GetCompressed(100);
-
-			//// Generate name
-			//FString FrameString = FString::Printf(TEXT("Frame_%05d.jpg"), CurrentFrameCount);
-			//FString AtlasName = OutputDir / Timestamp / FrameString;
-			//FFileHelper::SaveArrayToFile(PNGData, *AtlasName);
-
-			//ImageWrapper.Reset();
 		}
 
 		// Dump out how long the process took
