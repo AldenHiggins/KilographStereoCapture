@@ -60,67 +60,38 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
 	CaptureComponent->SetVisibility( true );
 	CaptureComponent->SetHiddenInGame( false );
 
-
-	// TEMP custom post processing settings
-	//CaptureComponent->PostProcessSettings
+	// TEMP hardcoded post process settings
 	CaptureComponent->PostProcessSettings.AutoExposureMethod = AEM_Histogram;
 	CaptureComponent->PostProcessSettings.AutoExposureMinBrightness = 1.0f;
 	CaptureComponent->PostProcessSettings.AutoExposureMaxBrightness = 1.0f;
 	//CaptureComponent->PostProcessSettings.AutoExposureSpeedUp = 20.0f;
 	//CaptureComponent->PostProcessSettings.AutoExposureSpeedDown = 20.0f;
-
-	CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
 	CaptureComponent->PostProcessSettings.AutoExposureBias = 0.5f;
 
+	CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
-	//CaptureComponent->PostProcessSettings.bOverride_AutoExposureSpeedUp = true;
-	//CaptureComponent->PostProcessSettings.bOverride_AutoExposureSpeedDown = true;
-
-	//CaptureComponent->PostProcessSettings.expos
-	
-
-	//CaptureComponent->PostProcessSettings.SceneColorTint = FLinearColor::Red;
-	//CaptureComponent->PostProcessSettings.bOverride_SceneColorTint = true;
 
 	CaptureComponent->PostProcessBlendWeight = 1.00f;
 
-	// Disable effects that we don't want for capture
-
-	CaptureComponent->PostProcessSettings.bOverride_GrainIntensity = true;
+	// Disable screen space effects that we don't want for capture
 
 	CaptureComponent->PostProcessSettings.GrainIntensity = 0.0f;
-
-	CaptureComponent->PostProcessSettings.bOverride_MotionBlurAmount = true;
-
 	CaptureComponent->PostProcessSettings.MotionBlurAmount = 0.0f;
-
-	CaptureComponent->PostProcessSettings.bOverride_ScreenSpaceReflectionIntensity = true;
-
 	CaptureComponent->PostProcessSettings.ScreenSpaceReflectionIntensity = 0.0f;
-
-	CaptureComponent->PostProcessSettings.bOverride_VignetteIntensity = true;
-
 	CaptureComponent->PostProcessSettings.VignetteIntensity = 0.0f;
 
-	//UMaterial *DepthMaterial = LoadObject<UMaterial>(NULL, TEXT("/Game/Depth.Depth"));
+	CaptureComponent->PostProcessSettings.bOverride_GrainIntensity = true;
+	CaptureComponent->PostProcessSettings.bOverride_MotionBlurAmount = true;
+	CaptureComponent->PostProcessSettings.bOverride_ScreenSpaceReflectionIntensity = true;
+	CaptureComponent->PostProcessSettings.bOverride_VignetteIntensity = true;
 
+	// Add in a blendable material to replicate a post processing pass
+
+	//UMaterial *DepthMaterial = LoadObject<UMaterial>(NULL, TEXT("/Game/Depth.Depth"));
 	//CaptureComponent->PostProcessSettings.AddBlendable(DepthMaterial, 1.0f);
 
-	//CaptureComponent->ShowFlags
-
-	//*NEW*
-
-	//CaptureComponent->GetViewState()->Allo
-
-	//	FSceneViewStateInterface* ViewStateInterface = ViewState.GetReference();
-	//if (bCaptureEveryFrame && ViewStateInterface == NULL)
-	//{
-	//	ViewState.Allocate();
-	//	ViewStateInterface = ViewState.GetReference();
-
-    //CaptureComponent->CaptureStereoPass = InStereoPass;
     CaptureComponent->FOVAngle = FMath::Max( HFov, VFov );
     CaptureComponent->bCaptureEveryFrame = true;
     CaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
@@ -129,10 +100,8 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
     CaptureComponent->TextureTarget = NewObject<UTextureRenderTarget2D>(this, TargetName);
     //TODO: ikrimae: Not sure why the render target needs to be float to avoid banding. Seems like captures to this RT and then applies PP
     //               on top of it which causes degredation.
-    //CaptureComponent->TextureTarget->InitCustomFormat(CaptureWidth, CaptureHeight, PF_A16B16G16R16, false);
 	CaptureComponent->TextureTarget->InitCustomFormat(CaptureWidth, CaptureHeight, PF_A16B16G16R16, false);
 	CaptureComponent->TextureTarget->ClearColor = FLinearColor::Red;
-
 
 	CaptureComponent->RegisterComponentWithWorld( GWorld );
 
@@ -714,9 +683,6 @@ void USceneCapturer::CaptureComponent( int32 CurrentHorizontalStep, int32 Curren
 	TArray<FColor> SurfaceData;
 
 	{
-		//bScreenshotSuccessful = GetViewportScreenShot(InViewport, Bitmap);
-
-
 		SCOPE_CYCLE_COUNTER( STAT_SPReadStrip );
 		FTextureRenderTargetResource* RenderTarget = CaptureComponent->TextureTarget->GameThread_GetRenderTargetResource();
 
