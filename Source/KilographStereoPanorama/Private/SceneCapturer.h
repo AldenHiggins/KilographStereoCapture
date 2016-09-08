@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CaptureConfigActor.h"
 #include "SceneCapturer.generated.h"
 
 
@@ -126,6 +127,8 @@ public:
 	}
 
 private:
+	// Config settings for this stereo capture
+	ACaptureConfigActor *captureConfiguration;
 
     const float hAngIncrement;
     const float vAngIncrement;

@@ -9,3 +9,4 @@
 #include "KilographStereoPanorama.h"
 #include "SceneCapturer.h"
 #include "StereoCapturePawn.h"
+#include "CaptureConfigActor.h"

@@ -60,13 +60,31 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
 	CaptureComponent->SetVisibility( true );
 	CaptureComponent->SetHiddenInGame( false );
 
+	// Search for the configuration settings
+	if (GWorld != NULL)
+	{
+		for (TActorIterator<ACaptureConfigActor> ActorItr(GWorld); ActorItr; ++ActorItr)
+		{
+			captureConfiguration = *ActorItr;
+			break;
+		}
+	}
+
+	if (captureConfiguration != NULL)
+	{
+		CaptureComponent->PostProcessSettings.AutoExposureBias = captureConfiguration->exposureBias;
+	}
+	else
+	{
+		CaptureComponent->PostProcessSettings.AutoExposureBias = 0.0f;
+	}
+
 	// TEMP hardcoded post process settings
 	CaptureComponent->PostProcessSettings.AutoExposureMethod = AEM_Histogram;
 	CaptureComponent->PostProcessSettings.AutoExposureMinBrightness = 1.0f;
 	CaptureComponent->PostProcessSettings.AutoExposureMaxBrightness = 1.0f;
 	//CaptureComponent->PostProcessSettings.AutoExposureSpeedUp = 20.0f;
 	//CaptureComponent->PostProcessSettings.AutoExposureSpeedDown = 20.0f;
-	CaptureComponent->PostProcessSettings.AutoExposureBias = 0.5f;
 
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
