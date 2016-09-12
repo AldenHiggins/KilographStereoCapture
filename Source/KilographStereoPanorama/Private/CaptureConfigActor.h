@@ -11,4 +11,7 @@ class  ACaptureConfigActor : public AActor
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CaptureSettings)
 	float exposureBias;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CaptureSettings)
+	bool renderEyesToSameImage = true;
 };

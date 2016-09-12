@@ -4,9 +4,6 @@
 
 DEFINE_LOG_CATEGORY( LogStereoPanorama );
 
-// Whether or not to render the left/right eyes together
-const bool CombineAtlasesOnOutput = true;
-
 //Rotated Grid Supersampling
 const int32 maxNumSamples = 16;
 struct SamplingPattern
@@ -61,17 +58,23 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
 	CaptureComponent->SetHiddenInGame( false );
 
 	// Search for the configuration settings
-	if (GWorld != NULL)
+	if (!haveSearchedForCaptureConfig)
 	{
-		for (TActorIterator<ACaptureConfigActor> ActorItr(GWorld); ActorItr; ++ActorItr)
+		if (GWorld != NULL)
 		{
-			captureConfiguration = *ActorItr;
-			break;
+			for (TActorIterator<ACaptureConfigActor> ActorItr(GWorld); ActorItr; ++ActorItr)
+			{
+				captureConfiguration = *ActorItr;
+				break;
+			}
 		}
+
+		haveSearchedForCaptureConfig = true;
 	}
 
 	if (captureConfiguration != NULL)
 	{
+		combineAtlasesOnOutput = captureConfiguration->renderEyesToSameImage;
 		CaptureComponent->PostProcessSettings.AutoExposureBias = captureConfiguration->exposureBias;
 	}
 	else
@@ -672,7 +675,7 @@ TArray<FColor> USceneCapturer::SaveAtlas(FString Folder, const TArray<FColor>& S
     //TODO: ikrimae: Use threads to write out the images for performance
 	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::PNG );
 
-	if (!CombineAtlasesOnOutput)
+	if (!combineAtlasesOnOutput)
 	{
 		ImageWrapper->SetRaw(SphericalAtlas.GetData(), SphericalAtlas.GetAllocatedSize(), SphericalAtlasWidth, SphericalAtlasHeight, ERGBFormat::BGRA, 8);
 		const TArray<uint8>& PNGData = ImageWrapper->GetCompressed(100);
@@ -878,7 +881,7 @@ void USceneCapturer::Tick( float DeltaTime )
 
 		UE_LOG(LogTemp, Warning, TEXT("Show me what you got"));
 
-		if (CombineAtlasesOnOutput)
+		if (combineAtlasesOnOutput)
 		{
 			TArray<FColor> CombinedAtlas;
 			CombinedAtlas.Append(SphericalLeftEyeAtlas);

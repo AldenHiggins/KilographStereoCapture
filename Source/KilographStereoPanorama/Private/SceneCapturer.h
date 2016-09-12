@@ -129,6 +129,10 @@ public:
 private:
 	// Config settings for this stereo capture
 	ACaptureConfigActor *captureConfiguration;
+	bool haveSearchedForCaptureConfig = false;
+
+	// Whether or not to render the left/right eyes together
+	bool combineAtlasesOnOutput = true;
 
     const float hAngIncrement;
     const float vAngIncrement;
