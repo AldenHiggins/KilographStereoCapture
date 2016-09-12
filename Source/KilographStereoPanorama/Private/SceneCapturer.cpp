@@ -75,29 +75,25 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
 	if (captureConfiguration != NULL)
 	{
 		combineAtlasesOnOutput = captureConfiguration->renderEyesToSameImage;
-		CaptureComponent->PostProcessSettings.AutoExposureBias = captureConfiguration->exposureBias;
+		//CaptureComponent->PostProcessSettings.AutoExposureBias = captureConfiguration->exposureBias;
+		CaptureComponent->PostProcessSettings = captureConfiguration->postProcessSettings;
 	}
 	else
 	{
 		CaptureComponent->PostProcessSettings.AutoExposureBias = 0.0f;
 	}
 
-	// TEMP hardcoded post process settings
+	// Override certain post processing settings
 	CaptureComponent->PostProcessSettings.AutoExposureMethod = AEM_Histogram;
 	CaptureComponent->PostProcessSettings.AutoExposureMinBrightness = 1.0f;
 	CaptureComponent->PostProcessSettings.AutoExposureMaxBrightness = 1.0f;
-	//CaptureComponent->PostProcessSettings.AutoExposureSpeedUp = 20.0f;
-	//CaptureComponent->PostProcessSettings.AutoExposureSpeedDown = 20.0f;
 
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
 	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
 
-	CaptureComponent->PostProcessBlendWeight = 1.00f;
-
 	// Disable screen space effects that we don't want for capture
-
 	CaptureComponent->PostProcessSettings.GrainIntensity = 0.0f;
 	CaptureComponent->PostProcessSettings.MotionBlurAmount = 0.0f;
 	CaptureComponent->PostProcessSettings.ScreenSpaceReflectionIntensity = 0.0f;
@@ -108,11 +104,9 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
 	CaptureComponent->PostProcessSettings.bOverride_ScreenSpaceReflectionIntensity = true;
 	CaptureComponent->PostProcessSettings.bOverride_VignetteIntensity = true;
 
-	// Add in a blendable material to replicate a post processing pass
+	CaptureComponent->PostProcessBlendWeight = 1.00f;
 
-	//UMaterial *DepthMaterial = LoadObject<UMaterial>(NULL, TEXT("/Game/Depth.Depth"));
-	//CaptureComponent->PostProcessSettings.AddBlendable(DepthMaterial, 1.0f);
-
+	// Set the rest of the capture settings
     CaptureComponent->FOVAngle = FMath::Max( HFov, VFov );
     CaptureComponent->bCaptureEveryFrame = true;
     CaptureComponent->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;

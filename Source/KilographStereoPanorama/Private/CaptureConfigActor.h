@@ -14,4 +14,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CaptureSettings)
 	bool renderEyesToSameImage = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CaptureSettings)
+	FPostProcessSettings postProcessSettings;
 };
