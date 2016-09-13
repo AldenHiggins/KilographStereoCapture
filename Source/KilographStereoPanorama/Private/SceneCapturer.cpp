@@ -75,36 +75,12 @@ void USceneCapturer::InitCaptureComponent( USceneCaptureComponent2D* CaptureComp
 	if (captureConfiguration != NULL)
 	{
 		combineAtlasesOnOutput = captureConfiguration->renderEyesToSameImage;
-		//CaptureComponent->PostProcessSettings.AutoExposureBias = captureConfiguration->exposureBias;
-		CaptureComponent->PostProcessSettings = captureConfiguration->postProcessSettings;
-	}
-	else
-	{
-		CaptureComponent->PostProcessSettings.AutoExposureBias = 0.0f;
+		CaptureComponent->ShowOnlyActors = captureConfiguration->onlyRenderTheseActors;
+		CaptureComponent->HiddenActors = captureConfiguration->hiddenActors;
 	}
 
-	// Override certain post processing settings
-	CaptureComponent->PostProcessSettings.AutoExposureMethod = AEM_Histogram;
-	CaptureComponent->PostProcessSettings.AutoExposureMinBrightness = 1.0f;
-	CaptureComponent->PostProcessSettings.AutoExposureMaxBrightness = 1.0f;
-
-	CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
-	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
-	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
-	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
-
-	// Disable screen space effects that we don't want for capture
-	CaptureComponent->PostProcessSettings.GrainIntensity = 0.0f;
-	CaptureComponent->PostProcessSettings.MotionBlurAmount = 0.0f;
-	CaptureComponent->PostProcessSettings.ScreenSpaceReflectionIntensity = 0.0f;
-	CaptureComponent->PostProcessSettings.VignetteIntensity = 0.0f;
-
-	CaptureComponent->PostProcessSettings.bOverride_GrainIntensity = true;
-	CaptureComponent->PostProcessSettings.bOverride_MotionBlurAmount = true;
-	CaptureComponent->PostProcessSettings.bOverride_ScreenSpaceReflectionIntensity = true;
-	CaptureComponent->PostProcessSettings.bOverride_VignetteIntensity = true;
-
-	CaptureComponent->PostProcessBlendWeight = 1.00f;
+	// Override the post process settings for this capture component
+	overridePostProcessSettings(CaptureComponent);
 
 	// Set the rest of the capture settings
     CaptureComponent->FOVAngle = FMath::Max( HFov, VFov );
@@ -305,7 +281,7 @@ void USceneCapturer::Reset()
 	UnprojectedRightEyeAtlas.Empty();
 }
 
-void USceneCapturer::SetPositionAndRotation( int32 CurrentHorizontalStep, int32 CurrentVerticalStep, int32 CaptureIndex )
+void USceneCapturer::SetPositionAndRotation(int32 CurrentHorizontalStep, int32 CurrentVerticalStep, int32 CaptureIndex)
 {
 	FRotator Rotation = StartRotation;
 	Rotation.Yaw += CurrentHorizontalStep * hAngIncrement;
@@ -820,6 +796,31 @@ void USceneCapturer::Tick( float DeltaTime )
             
             FRotator Rotation;
             CapturePlayerController->GetPlayerViewPoint(StartLocation, Rotation);
+
+			// Search for post processing volumes that might affect the capture component
+			if (GWorld != NULL)
+			{
+				float currentDistance = 1000000000.0f;
+				for (TActorIterator<APostProcessVolume> ActorItr(GWorld); ActorItr; ++ActorItr)
+				{
+					APostProcessVolume *postProcessVolume = *ActorItr;
+					float distance;
+					bool encompassPoint = postProcessVolume->EncompassesPoint(StartLocation, 200.0f, &distance);
+					if (encompassPoint && distance < currentDistance)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("Component location %s"), *StartLocation.ToString());
+						currentDistance = distance;
+
+						for (int32 CaptureIndex = 0; CaptureIndex < FKilographStereoPanoramaManager::ConcurrentCaptures->GetInt(); CaptureIndex++)
+						{
+							LeftEyeCaptureComponents[CaptureIndex]->PostProcessSettings = postProcessVolume->Settings;
+							overridePostProcessSettings(LeftEyeCaptureComponents[CaptureIndex]);
+							RightEyeCaptureComponents[CaptureIndex]->PostProcessSettings = postProcessVolume->Settings;
+							overridePostProcessSettings(RightEyeCaptureComponents[CaptureIndex]);
+						}
+					}
+				}
+			}
             
             Rotation.Roll = 0.0f;
             Rotation.Yaw = (bOverrideInitialYaw) ? ForcedInitialYaw : Rotation.Yaw;
@@ -931,4 +932,30 @@ void USceneCapturer::Tick( float DeltaTime )
 			FKilographStereoPanoramaModule::Get()->Cleanup();
 		}
 	}
+}
+
+void USceneCapturer::overridePostProcessSettings(USceneCaptureComponent2D* CaptureComponent)
+{
+	// Override certain post processing settings
+	CaptureComponent->PostProcessSettings.AutoExposureMethod = AEM_Histogram;
+	CaptureComponent->PostProcessSettings.AutoExposureMinBrightness = 1.0f;
+	CaptureComponent->PostProcessSettings.AutoExposureMaxBrightness = 1.0f;
+
+	CaptureComponent->PostProcessSettings.bOverride_AutoExposureBias = true;
+	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMethod = true;
+	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMinBrightness = true;
+	CaptureComponent->PostProcessSettings.bOverride_AutoExposureMaxBrightness = true;
+
+	// Disable screen space effects that we don't want for capture
+	CaptureComponent->PostProcessSettings.GrainIntensity = 0.0f;
+	CaptureComponent->PostProcessSettings.MotionBlurAmount = 0.0f;
+	//CaptureComponent->PostProcessSettings.ScreenSpaceReflectionIntensity = 0.0f;
+	CaptureComponent->PostProcessSettings.VignetteIntensity = 0.0f;
+
+	CaptureComponent->PostProcessSettings.bOverride_GrainIntensity = true;
+	CaptureComponent->PostProcessSettings.bOverride_MotionBlurAmount = true;
+	//CaptureComponent->PostProcessSettings.bOverride_ScreenSpaceReflectionIntensity = true;
+	CaptureComponent->PostProcessSettings.bOverride_VignetteIntensity = true;
+
+	CaptureComponent->PostProcessBlendWeight = 1.00f;
 }

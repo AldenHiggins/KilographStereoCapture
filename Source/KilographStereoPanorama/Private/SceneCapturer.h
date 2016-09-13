@@ -127,6 +127,9 @@ public:
 	}
 
 private:
+	// Override the post processing settings for this capture actor
+	void overridePostProcessSettings(USceneCaptureComponent2D* CaptureComponent);
+
 	// Config settings for this stereo capture
 	ACaptureConfigActor *captureConfiguration;
 	bool haveSearchedForCaptureConfig = false;

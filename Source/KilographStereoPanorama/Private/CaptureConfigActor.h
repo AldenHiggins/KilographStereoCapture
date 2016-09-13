@@ -9,12 +9,13 @@ class  ACaptureConfigActor : public AActor
 	GENERATED_UCLASS_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CaptureSettings)
-	float exposureBias;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CaptureSettings)
 	bool renderEyesToSameImage = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CaptureSettings)
-	FPostProcessSettings postProcessSettings;
+	TArray<AActor *> onlyRenderTheseActors;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CaptureSettings)
+	TArray<AActor *> hiddenActors;
 };
