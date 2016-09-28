@@ -805,7 +805,7 @@ void USceneCapturer::Tick( float DeltaTime )
 				{
 					APostProcessVolume *postProcessVolume = *ActorItr;
 					float distance;
-					bool encompassPoint = postProcessVolume->EncompassesPoint(StartLocation, 200.0f, &distance);
+					bool encompassPoint = postProcessVolume->EncompassesPoint(StartLocation, 200000.0f, &distance);
 					if (encompassPoint && distance < currentDistance)
 					{
 						UE_LOG(LogTemp, Warning, TEXT("Component location %s"), *StartLocation.ToString());
